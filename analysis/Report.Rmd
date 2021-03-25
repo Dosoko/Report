@@ -253,6 +253,7 @@ head (out_limma)
 
 
 ## Volcano plot 
+With the Volcano plot the logarithmic fold change (x-axis) and the negative logarithmic p-value (y-axis) are visualized for each gene. The higher the y-axis value is the more significant is the difference of expressions between the samples. Additionally the foldchange expresses if the gene was upregulated (positive logFC) or downregulated (negative logFC).
 ```{r}
 ##Highlight genes that have an absolute fold change > 2 and FDR < 0.05
 out_limma$threshold1 = as.factor(abs(out_limma$logFC) > 2 & out_limma$adj.P.Val < 0.05)
@@ -261,8 +262,11 @@ cbPalette<- c("mediumblue", "firebrick1")
 
 volcano_oocyte = ggplot(data=out_limma, aes(x=logFC, y=-log10(P.Value), colour=threshold1)) +
   geom_point(size=2) +
+  geom_text(aes(label=row.names(out_limma)),hjust=0.5, vjust=-0.75)+
   xlab("log2 fold change") + ylab("-log10 p-value") + theme_classic() + theme(legend.position="none") + scale_color_manual (values=cbPalette) + 
-  ggtitle("FDR  < 0.05 ") + theme(plot.title = element_text(hjust=0.5))
+  ggtitle("FDR  < 0.05 ") + theme(plot.title = element_text(hjust=0.5))+
+  xlim(-0.6, 0.3)+
+  ylim(1, 4)
 
 volcano_oocyte
 ```

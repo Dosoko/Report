@@ -506,16 +506,16 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrong5d21a86"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> 5d21a86 </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrong7f545c4"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> 7f545c4 </a>
 </p>
 </div>
-<div id="strongRepositoryversionstrong5d21a86" class="panel-collapse collapse">
+<div id="strongRepositoryversionstrong7f545c4" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
 Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility.
 </p>
 <p>
-The results in this page were generated with repository version 5d21a86. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
+The results in this page were generated with repository version 7f545c4. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
 </p>
 <p>
 Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
@@ -559,6 +559,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+7f545c4
+</td>
+<td>
+Dosoko
+</td>
+<td>
+2021-03-25
+</td>
+<td>
+added a new analysis file
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+334e024
+</td>
+<td>
+Dosoko
+</td>
+<td>
+2021-03-25
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -873,6 +907,7 @@ n.R5.8s1    0.1717594 18.06796  1.752960 0.0868361356 0.086836136 -4.8248902</co
 </div>
 <div id="volcano-plot" class="section level2">
 <h2>Volcano plot</h2>
+<p>With the Volcano plot the logarithmic fold change (x-axis) and the negative logarithmic p-value (y-axis) are visualized for each gene. The higher the y-axis value is the more significant is the difference of expressions between the samples. Additionally the foldchange expresses if the gene was upregulated (positive logFC) or downregulated (negative logFC).</p>
 <pre class="r"><code>##Highlight genes that have an absolute fold change &gt; 2 and FDR &lt; 0.05
 out_limma$threshold1 = as.factor(abs(out_limma$logFC) &gt; 2 &amp; out_limma$adj.P.Val &lt; 0.05)
 
@@ -880,8 +915,11 @@ cbPalette&lt;- c(&quot;mediumblue&quot;, &quot;firebrick1&quot;)
 
 volcano_oocyte = ggplot(data=out_limma, aes(x=logFC, y=-log10(P.Value), colour=threshold1)) +
   geom_point(size=2) +
+  geom_text(aes(label=row.names(out_limma)),hjust=0.5, vjust=-0.75)+
   xlab(&quot;log2 fold change&quot;) + ylab(&quot;-log10 p-value&quot;) + theme_classic() + theme(legend.position=&quot;none&quot;) + scale_color_manual (values=cbPalette) + 
-  ggtitle(&quot;FDR  &lt; 0.05 &quot;) + theme(plot.title = element_text(hjust=0.5))
+  ggtitle(&quot;FDR  &lt; 0.05 &quot;) + theme(plot.title = element_text(hjust=0.5))+
+  xlim(-0.6, 0.3)+
+  ylim(1, 4)
 
 volcano_oocyte</code></pre>
 <p><img src="figure/Report.Rmd/unnamed-chunk-16-1.png" width="672" style="display: block; margin: auto;" /></p>

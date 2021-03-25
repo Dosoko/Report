@@ -1,0 +1,270 @@
+---
+title: "Report"
+author: "Daniel_Osoko"
+date: "23 3 2021"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    code_folding: hide
+---
+## Libraries
+```{r, include=FALSE}
+library("limma")
+library("edgeR")
+library("DESeq2")
+library("ggplot2")
+```
+
+# Task 1
+## Initial Step
+
+To Begin the Analysis the Datasets have to be imported. In this case two datasets are used. The first dataset originates from small-seq and includes the counts of small RNAs in oocytes. The second dataset was obtained with the NEBNext protocol and contains the biotype counts of small RNAs in cauda epididymosomes. After importing both data sets all RNAs types are recalled to check for the RNAs of interest.
+```{r}
+b2 <- read.csv("C:/Users/danio/Desktop/6th_Semester/Blockcourse/Study_of_Epigenetic_Mechanisms_in_Mental_Health/firstweek/b2.csv", row.names=1, header = TRUE, sep = ",")
+b2$type <- as.factor(b2$type)
+
+
+epy<- read.csv("C:/Users/danio/Desktop/6th_Semester/Blockcourse/Study_of_Epigenetic_Mechanisms_in_Mental_Health/firstweek/BexceRpt_biotypeCounts.csv", row.names=1, header = TRUE, sep = ",")
+```
+
+Detected small RNAs in oocytes: 
+
+```{r} 
+levels(b2$type)
+```
+
+Detected small RNAs in cauda epididymosomes: 
+
+```{r} 
+rownames(epy)
+```
+
+## Overview of Data
+
+In the next steps the non-essential biotypes are combined into the group "others", the biotypes of interest and therefore excluded from "others" are miRNA, snoRNA, rRNA and protein coding RNA .
+
+The following table shows all small RNAs measurements from the oocyte analysis:
+```{r}
+
+levels(b2$type) [c(1:10,12,13:15,16,18,19,21,22,24:38)] <- "others"
+table(b2$type)
+```
+
+In the case of the cauda epididymosomes the data was pre configurated, which explains the amount of entries per small RNA.
+```{r}
+epy$type <- as.factor(row.names(epy))
+levels(epy$type)[c(1:12, 14:22, 24:26, 28:31, 33:47)] <- "others" 
+table(epy$type)
+
+```
+
+```{r}
+library(reshape)
+counts_b2<- matrix(nrow=5, ncol= 53, dimnames = list(levels(as.factor(b2$type)), colnames(b2[,1:53]))) #creates empty table with column and row names from b2
+          for (i in 1:53) { counts_b2[,i] <- tapply( b2[,i], b2$type, FUN=sum)} #sums up values per category
+
+counts_b2_normalized <- prop.table(counts_b2, margin=2) #normalizes data margin 2=rows                                                        1=columns
+    counts_b2_normalized <- counts_b2_normalized*100 #turns values from 1 to 100%
+    
+counts_b2_normalized_Transposed <- t(counts_b2_normalized) #needed for proper melt                                                                function
+b2_norm_melt <- melt(counts_b2_normalized_Transposed)
+names(b2_norm_melt) <- c("Cell", "Type", "Percentage")
+
+#need melt for not normalized:
+
+counts_b2_Transposed <- t(counts_b2)
+b2_raw_melt <- melt(counts_b2_Transposed)
+names(b2_raw_melt) <- c("Cell", "Type", "Counts")
+
+
+counts_epy<- matrix(nrow=5, ncol= 10, dimnames = list(levels(as.factor(epy$type)), colnames(epy[,1:10]))) #creates empty table with column and row names from b2
+          for (i in 1:10) { counts_epy[,i] <- tapply( epy[,i], epy$type, FUN=sum)} #sums up values per category here only important for others
+
+counts_epy_normalized <- prop.table(counts_epy, margin=2) #normalizes data margin                                                        2=rows 1=columns
+    counts_epy_normalized <- counts_epy_normalized*100 #turns values from 1 to 100%
+    
+counts_epy_normalized_Transposed <- t(counts_epy_normalized) #needed for proper melt                                                                function
+epy_norm_melt <- melt(counts_epy_normalized_Transposed)
+names(epy_norm_melt) <- c("Cell", "Type", "Percentage")
+
+#need melt for not normalized:
+
+counts_epy_Transposed <- t(counts_epy)
+epy_raw_melt <- melt(counts_epy_Transposed)
+names(epy_raw_melt) <- c("Cell", "Type", "Counts")
+
+```
+
+## Visualisation of the Data
+
+To visualize the importance of normalisation to avoid the PCR-bias (GC-content influences the duplication speed), the datasets are displayed in two graphs, with the first one displaying the ratios with raw read counts and the second graph displaying the same data after normalisation.
+
+### Oocytes
+
+```{r}
+library(ggplot2)
+
+ggplot(data=b2_raw_melt,  aes(x=Cell, y=Counts, fill= Type)) +
+  geom_bar(stat="identity") +
+  scale_x_discrete(guide = guide_axis(angle = -90))+
+  labs(title= "Oocyte small RNA libraries", y="Counts", x = "Cell")
+
+ggplot(data=b2_norm_melt,  aes(x=Cell, y=Percentage, fill= Type)) +
+  geom_bar(stat="identity") +
+  scale_x_discrete(guide = guide_axis(angle = -90))+
+  labs(title= "Normalised Oocyte small RNA libraries", y="Percentage", x = "Cell")
+
+```
+
+### Cauda Epididymosomes
+
+```{r}
+library(ggplot2)
+
+
+
+ggplot(data=epy_raw_melt,  aes(x=Cell, y=Counts, fill= Type)) +
+  geom_bar(stat="identity") +
+  scale_x_discrete(guide = guide_axis(angle = -90))+
+  labs(title= "Cauda epididymosomes small RNA libraries", y="Counts", x = "Cell")
+
+ggplot(data=epy_norm_melt,  aes(x=Cell, y=Percentage, fill= Type)) +
+  geom_bar(stat="identity") +
+  scale_x_discrete(guide = guide_axis(angle = -90))+
+  labs(title= "Normalised epididymosomes small RNA libraries", y="Percentage", x = "Cell")
+
+```
+
+
+On a first glance it is visible that the cauda epididymosomes dont include any rRNA. Additionally by comparing the two normalised graphs one can deduce that the oocytes express more rRna and snoRNA than the cauda epigidymosomes but less miRNA.
+
+
+
+```{r, echo=FALSE}
+#saving tidied counts as new file
+#counts_save <- b2[apply(b2, 1, FUN = function(x) { sum(x >= 10) >= floor(length(x) * 0.4) }), ] 
+#drops <- c("a4", "a5", "a6", "a17", "a26", "a66") 
+#counts_save <- counts_save[ , !(names(counts_save) %in% drops)] 
+#write.csv(counts_save, "C:/Users/danio/Desktop/6th_Semester/Blockcourse/Study_of_Epigenetic_Mechanisms_in_Mental_Health/firstweek/counts2.csv")
+```
+
+
+# Task 2
+## Data
+
+```{r}
+counts2 <- read.csv("C:/Users/danio/Desktop/6th_Semester/Blockcourse/Study_of_Epigenetic_Mechanisms_in_Mental_Health/firstweek/counts2.csv", row.names=1, header = TRUE, sep = ",")
+
+
+lof <- read.csv("C:/Users/danio/Desktop/6th_Semester/Blockcourse/Study_of_Epigenetic_Mechanisms_in_Mental_Health/firstweek/List_of_cells.csv", header = TRUE, sep = ";")
+
+counts_def <- counts2[c(10,14:15),1:38] #removing types and non-Msus/CTRL samples
+counts_lof <- counts_def[,-1]
+rownames(counts_lof) <- counts_def[,1] #1st column to rownames
+
+lof2 <- lof[c(1:3,7:16,32:55),]
+
+
+```
+
+## Normalization
+As seen before, normalization is important to allow proper comparison between reads. The following graphs express the oocyte gene expressions in boxplots, the first one is the raw read, the second one express the normalized value, in which the bottom line is the same, giving us the foundation for proper comparison.
+```{r}
+
+#Creating/combining wanted data
+dge <- DGEList(counts=counts_lof, samples=lof2, group = lof2$Group) 
+
+dge <- calcNormFactors(dge) #TMM
+
+
+#normalization
+norm_dge <- cpm(dge, log = TRUE)
+
+boxplot(counts_lof, main = "Boxplot of log counts", las=2) #before norm
+boxplot(norm_dge, main = "Boxplot of normalized log counts", las=2) #after norm
+```
+
+
+
+## PCA 
+To see the differences inbetween the oocytes the clustered are visiualized using PCA. The Cells are described by the two gene expressions which offer the biggest variances.
+```{r}
+
+ #PCA after normalisation
+#prcomp(lof, scale=FALSE)
+
+df <- t(norm_dge)
+row.names(df) <- paste(lof2$Group) #turns cell names (a1:a55) into treatment/groups
+
+df_pca <- prcomp(df) #use df as it is normalized and make pca where x describes de diffrent principal components
+df_out <- as.data.frame(df_pca$x)
+df_out$group <- sapply( strsplit(as.character(row.names(df)), "_"), "[[", 1 ) #adds row names as column behind it as column "group"
+
+percentage <- round(df_pca$sdev / sum(df_pca$sdev) * 100, 2) #expresses counts as %
+percentage <- paste( colnames(df_out), "(", paste( as.character(percentage), "%", ")", sep="") ) #describes the percentage each PC covers
+
+group <- lof2$Group
+
+pca_CTRL_vs_MSUS <- ggplot(df_out, aes(x=PC1, y=PC2, color=group)) #starting ggplot
+pca_CTRL_vs_MSUS <- pca_CTRL_vs_MSUS + #producing PCA
+  geom_point(size = 2) + xlab(percentage[1]) + ylab(percentage[2]) +
+  theme_classic() + theme(legend.title = element_blank()) +
+  ggtitle("PCA plot CTRL and MSUS") + theme(plot.title = element_text(size = 20, hjust=0.5)) + 
+  theme(
+  axis.text.x = element_blank(),
+  axis.text.y = element_blank(),
+  axis.ticks = element_blank())
+
+pca_CTRL_vs_MSUS
+
+
+```
+
+
+## Design matrix
+To properly compare the effects of Control and MSUS first a design matrix which expresses which sample belongs to which group in binary is needed.
+
+```{r}
+group <- lof2$Group
+
+design <- model.matrix(~group)
+design
+```
+
+
+## Differential gene expression analysis
+The next step is to analyse which genes are differantly expressed. To accomplish this a linear function is fitted to the data and their expression is analysed statistically.
+```{r message=FALSE, warning=FALSE}
+# Estimate dispersion
+dge <- estimateDisp(dge, design, robust=TRUE)
+
+# Use voom transformation
+v <- voom(dge, design, plot=FALSE)
+
+fit_limma <- lmFit(v, design)
+fit_limma <- eBayes(fit_limma)
+
+out_limma <- topTable(fit_limma, adjust="BH", n = "Inf")
+head (out_limma)
+
+```
+
+
+
+## Volcano plot 
+```{r}
+##Highlight genes that have an absolute fold change > 2 and FDR < 0.05
+out_limma$threshold1 = as.factor(abs(out_limma$logFC) > 2 & out_limma$adj.P.Val < 0.05)
+
+cbPalette<- c("mediumblue", "firebrick1")
+
+volcano_oocyte = ggplot(data=out_limma, aes(x=logFC, y=-log10(P.Value), colour=threshold1)) +
+  geom_point(size=2) +
+  xlab("log2 fold change") + ylab("-log10 p-value") + theme_classic() + theme(legend.position="none") + scale_color_manual (values=cbPalette) + 
+  ggtitle("FDR  < 0.05 ") + theme(plot.title = element_text(hjust=0.5))
+
+volcano_oocyte
+```
+
+
